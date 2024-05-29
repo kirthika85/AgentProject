@@ -75,9 +75,15 @@ if st.button("Convert to Present Time"):
     agent.convert_to_present_time("travel2.sqlite")
 
 # Display data from the database
-conn = sqlite3.connect("travel2.sqlite")
-query = "SELECT * FROM flights LIMIT 5"
-df = pd.read_sql_query(query, conn)
-st.write("Sample Data from Flights Table:")
-st.write(df)
-conn.close()
+conn = None
+try:
+    conn = sqlite3.connect("travel2.sqlite")
+    query = "SELECT * FROM flights LIMIT 5"
+    df = pd.read_sql_query(query, conn)
+    st.write("Sample Data from Flights Table:")
+    st.write(df)
+except Exception as e:
+    st.error(f"Error: {e}")
+finally:
+    if conn:
+        conn.close()
