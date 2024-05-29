@@ -30,11 +30,11 @@ class AssistantAgent:
     @tool
     def download_database(self, db_url: str, local_file: str, backup_file: str, overwrite: bool = False) -> None:
         """Download the database from the given URL and create a backup."""
-        print("Downloading database...")
-        print(f"DB URL: {db_url}")
-        print(f"Local file: {local_file}")
-        print(f"Backup file: {backup_file}")
-        print(f"Overwrite: {overwrite}")
+        st.write("Downloading database...")
+        st.write(f"DB URL: {db_url}")
+        st.write(f"Local file: {local_file}")
+        st.write(f"Backup file: {backup_file}")
+        st.write(f"Overwrite: {overwrite}")
         if overwrite or not os.path.exists(local_file):
             response = requests.get(db_url)
             response.raise_for_status()
