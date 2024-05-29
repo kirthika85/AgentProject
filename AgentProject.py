@@ -7,7 +7,7 @@ import streamlit as st
 import logging
 from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
 from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain.tools import tool
+from langchain.tools import tool, Tool
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,8 +22,9 @@ class TravelAgent:
         logger.debug("TravelAgent initialized.")
 
     @tool
-    def download_database(self, overwrite: bool = False) -> str:
+    def download_database(self, overwrite: str = "False") -> str:
         """Download the database from the given URL and create a backup."""
+        overwrite = overwrite.lower() == 'true'
         logger.debug(f"Attempting to download database. Overwrite: {overwrite}")
         if overwrite or not os.path.exists(self.local_file):
             logger.debug("Downloading database...")
@@ -38,17 +39,30 @@ class TravelAgent:
         return "Database downloaded and backup created."
 
     @tool
-    def display_table(self, table_name: str) -> pd.DataFrame:
+    def display_table(self, table_name: str) -> str:
         """Display the contents of the specified table."""
         logger.debug(f"Fetching data from table: {table_name}")
         conn = sqlite3.connect(self.local_file)
         query = f"SELECT * FROM {table_name} LIMIT 10"
         df = pd.read_sql_query(query, conn)
         conn.close()
-        return df
+        return df.to_string()
 
 # Create an instance of the agent
 travel_agent = TravelAgent()
+
+# Define tools
+download_database_tool = Tool.from_function(
+    func=travel_agent.download_database,
+    name="download_database",
+    description="Download the database from the given URL and create a backup.",
+)
+
+display_table_tool = Tool.from_function(
+    func=travel_agent.display_table,
+    name="display_table",
+    description="Display the contents of the specified table.",
+)
 
 # Define Streamlit UI
 st.title("Travel Data Processing")
@@ -72,7 +86,7 @@ st.write("Environment variables set.")
 if st.button("Download Database"):
     try:
         st.write("Download Database button clicked.")
-        result = travel_agent.download_database(overwrite=True)
+        result = download_database_tool({"overwrite": "True"})
         st.write(result)
     except Exception as e:
         st.error(f"An error occurred while downloading the database: {e}")
@@ -96,8 +110,8 @@ if tables:
     if st.button("Display Table"):
         try:
             st.write(f"Displaying contents of table: {selected_table}")
-            result = travel_agent.display_table(table_name=selected_table)
-            st.write(result)
+            result = display_table_tool({"table_name": selected_table})
+            st.text(result)
         except Exception as e:
             st.error(f"An error occurred while displaying the table: {e}")
             logger.exception("An error occurred while displaying the table")
