@@ -5,7 +5,8 @@ import pandas as pd
 import requests
 import streamlit as st
 from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
-from langchain.tools import tool, agent
+from langchain.agents import create_openai_functions_agent, AgentExecutor
+from langchain.tools import tool
 from langchain_anthropic import ChatAnthropic
 
 # Define the agent class
