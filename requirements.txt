@@ -5,3 +5,5 @@ langchain-community
 langchain-anthropic 
 tavily-python 
 pandas
+beautifulsoup4
+requests
