@@ -1,7 +1,7 @@
 import os
 import shutil
 import sqlite3
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 import pandas as pd
 import requests
@@ -16,6 +16,24 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
 
+# Function to set environment variables
+def set_env(variable_name, value):
+    if value:
+        os.environ[variable_name] = value
+
+# Sidebar inputs for environment variables
+anthropic_api_key = st.sidebar.text_input("ANTHROPIC_API_KEY", type="password")
+tavily_api_key = st.sidebar.text_input("TAVILY_API_KEY", type="password")
+langchain_api_key = st.sidebar.text_input("LANGCHAIN_API_KEY", type="password")
+
+# Set environment variables
+set_env("ANTHROPIC_API_KEY", anthropic_api_key)
+set_env("TAVILY_API_KEY", tavily_api_key)
+set_env("LANGCHAIN_API_KEY", langchain_api_key)
+
+# Recommended settings
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
 class Assistant:
     def __init__(self, runnable: Runnable):
@@ -36,7 +54,6 @@ class Assistant:
             else:
                 break
         return {"messages": result}
-
 
 # Initialize the ChatAnthropic model
 llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=1)
@@ -67,7 +84,6 @@ def download_database(db_url: str, local_file: str, backup_file: str, overwrite:
             f.write(response.content)
         shutil.copy(local_file, backup_file)
 
-
 @tool
 def convert_to_present_time(local_file: str) -> None:
     """Convert flight times to present time."""
@@ -94,7 +110,6 @@ def convert_to_present_time(local_file: str) -> None:
 
     conn.commit()
     conn.close()
-
 
 @tool
 def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
@@ -124,7 +139,6 @@ def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
     conn.close()
 
     return results
-
 
 @tool
 def search_flights(
@@ -168,7 +182,6 @@ def search_flights(
     conn.close()
 
     return results
-
 
 @tool
 def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> str:
@@ -230,7 +243,6 @@ def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> 
     conn.close()
     return "Ticket successfully updated to new flight."
 
-
 @tool
 def cancel_ticket(db: str, ticket_no: str) -> str:
     """Cancel the user's ticket and remove it from the database."""
@@ -267,7 +279,6 @@ def cancel_ticket(db: str, ticket_no: str) -> str:
     cursor.close()
     conn.close()
     return "Ticket successfully cancelled."
-
 
 # Set up the agent runnable
 part_1_tools = [
