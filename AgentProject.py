@@ -7,13 +7,6 @@ import streamlit as st
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 #from langchain_openai import ChatOpenAI
 
-def set_env(var: str, default: str):
-    if not os.environ.get(var):
-        os.environ[var] = getpass.getpass(f"{var} (default: {default}): ") or default
-
-set_env("ANTHROPIC_API_KEY", "")
-set_env("TAVILY_API_KEY", "")
-set_env("LANGCHAIN_API_KEY", "")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
@@ -47,7 +40,15 @@ def setup_database():
     conn.close()
     return local_file
 
-def main():
+st.title("Travel Database Chat")
+openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
+tavily_api_key = st.sidebar.text_input('Tavily API Key', type='password')
+
+if not openai_api_key.startswith('sk-'):
+    st.warning('Please enter your OpenAI API key!', icon='⚠')
+elif openai_api_key.startswith('sk-') and tavily_api_key:
+    os.environ['TAVILY_API_KEY'] = tavily_api_key
+   
     st.set_page_config(page_title="Travel Database App")
     st.title("Travel Database Chat")
 
@@ -76,8 +77,4 @@ def main():
     for chat in chat_history:
         st.write(f"**User:** {chat['user']}")
         st.write(f"**Assistant:** {chat['assistant']}")
-
-if __name__ == "__main__":
-    main()
-
 
