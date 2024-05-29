@@ -4,7 +4,7 @@ import sqlite3
 import requests
 import shutil
 import streamlit as st
-from from langchain_experimental.agents import create_pandas_dataframe_agent
+from  langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.llms import OpenAI
 
 # Set the page configuration at the top
