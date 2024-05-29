@@ -82,8 +82,8 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     if user_input:
         try:
             agent_response = agent.run(user_input)
-            chat_history.write(f"User: {user_input}")
-            chat_history.write(f"Assistant: {agent_response}")
+            st.write(f"User: {user_input}")
+            st.write(f"Assistant: {agent_response}")
             chat_history.append({"user": user_input, "assistant": agent_response})
         except Exception as e:
             st.error(f"An error occurred: {e}")
