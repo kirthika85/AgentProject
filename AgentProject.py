@@ -275,7 +275,7 @@ def cancel_ticket(db: str, ticket_no: str) -> str:
     return "Ticket successfully cancelled."
 
 # Set up the agent runnable
-tavily_search_results_tool = TavilySearchResults(api_key=tavily_api_key, max_results=1)
+tavily_search_results_tool = TavilySearchResults(api_key=tavily_api_key)
 
 part_1_tools = [
     tavily_search_results_tool,
