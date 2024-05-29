@@ -4,8 +4,8 @@ import sqlite3
 import requests
 import shutil
 import streamlit as st
-from  langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain.llms import OpenAI
+from langchain_experimental.agents import create_pandas_dataframe_agent
+from langchain.llms import OpenAI  # Make sure this import matches the actual LangChain module structure
 
 # Set the page configuration at the top
 st.set_page_config(page_title="Travel Database App")
@@ -76,7 +76,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     user_input = st.text_input("Enter your query:", key="input")
     if user_input:
         try:
-            agent_response = agent.invoke(user_input)
+            agent_response = agent.run(user_input)
             chat_history.append({"user": user_input, "assistant": agent_response})
         except Exception as e:
             st.error(f"An error occurred: {e}")
