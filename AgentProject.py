@@ -53,11 +53,6 @@ travel_agent = TravelAgent()
 # Define Streamlit UI
 st.title("Travel Data Processing")
 
-# Agent Executor setup
-tools = [travel_agent.download_database, travel_agent.display_table]
-agent = create_openai_functions_agent(tools)
-executor = AgentExecutor(agent=agent)
-
 # Example: Set environment variables (optional)
 def _set_env(var: str):
     if not os.environ.get(var):
@@ -77,7 +72,7 @@ st.write("Environment variables set.")
 if st.button("Download Database"):
     try:
         st.write("Download Database button clicked.")
-        result = executor.run("download_database", {"overwrite": True})
+        result = travel_agent.download_database(overwrite=True)
         st.write(result)
     except Exception as e:
         st.error(f"An error occurred while downloading the database: {e}")
@@ -101,7 +96,7 @@ if tables:
     if st.button("Display Table"):
         try:
             st.write(f"Displaying contents of table: {selected_table}")
-            result = executor.run("display_table", {"table_name": selected_table})
+            result = travel_agent.display_table(table_name=selected_table)
             st.write(result)
         except Exception as e:
             st.error(f"An error occurred while displaying the table: {e}")
