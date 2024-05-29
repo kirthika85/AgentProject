@@ -9,7 +9,7 @@ from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import tool
 from langchain_anthropic import ChatAnthropic
 
-# Define the agent class
+# Define the TravelAgent class with debugging messages
 class TravelAgent:
     def __init__(self):
         self.db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
@@ -98,6 +98,7 @@ st.write("Environment variables set.")
 # Define the Streamlit app
 st.title("Travel Data Processing")
 
+# Define Streamlit buttons to trigger tool functions
 if st.button("Download Database"):
     st.write("Download Database button clicked.")
     result = travel_agent.download_database(overwrite=True)
