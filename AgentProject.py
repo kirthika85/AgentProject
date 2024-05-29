@@ -4,12 +4,10 @@ import sqlite3
 import pandas as pd
 import requests
 import streamlit as st
-from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
-from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import tool
-from langchain_anthropic import ChatAnthropic
+from langchain.agents import create_openai_functions_agent, AgentExecutor
 
-# Define the TravelAgent class with debugging messages
+# Define the TravelAgent class with tool functions
 class TravelAgent:
     def __init__(self):
         self.db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
@@ -34,53 +32,49 @@ class TravelAgent:
         return "Database downloaded and backup created."
 
     @tool
-    def convert_to_present_time(self) -> str:
-        """Convert flight times to present time."""
-        st.write("Converting flight times to present time...")
+    def display_table(self, table_name: str) -> pd.DataFrame:
+        """Display the contents of the specified table."""
+        st.write(f"Fetching data from table: {table_name}")
         conn = sqlite3.connect(self.local_file)
-        cursor = conn.cursor()
-
-        st.write("Fetching table names...")
-        tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
-        st.write(f"Tables found: {tables}")
-        
-        tdf = {}
-        for t in tables:
-            st.write(f"Reading table: {t}")
-            tdf[t] = pd.read_sql(f"SELECT * from {t}", conn)
-
-        st.write("Calculating time difference...")
-        example_time = pd.to_datetime(tdf["flights"]["actual_departure"].replace("\\N", pd.NaT)).max()
-        current_time = pd.to_datetime("now").tz_localize(example_time.tz)
-        time_diff = current_time - example_time
-        st.write(f"Time difference: {time_diff}")
-
-        st.write("Updating booking dates...")
-        tdf["bookings"]["book_date"] = (
-            pd.to_datetime(tdf["bookings"]["book_date"].replace("\\N", pd.NaT), utc=True) + time_diff
-        )
-
-        datetime_columns = ["scheduled_departure", "scheduled_arrival", "actual_departure", "actual_arrival"]
-        for column in datetime_columns:
-            st.write(f"Updating column: {column}")
-            tdf["flights"][column] = (
-                pd.to_datetime(tdf["flights"][column].replace("\\N", pd.NaT)) + time_diff
-            )
-
-        st.write("Writing updated data back to database...")
-        for table_name, df in tdf.items():
-            st.write(f"Writing table: {table_name}")
-            df.to_sql(table_name, conn, if_exists="replace", index=False)
-
-        conn.commit()
+        query = f"SELECT * FROM {table_name} LIMIT 10"
+        df = pd.read_sql_query(query, conn)
         conn.close()
-        st.write("Flight times converted to present time.")
-        return "Flight times converted to present time."
+        return df
 
 # Create an instance of the agent
 travel_agent = TravelAgent()
 
 # Streamlit UI
+st.title("Travel Data Processing")
+
+# Define Streamlit buttons to trigger tool functions
+if st.button("Download Database"):
+    st.write("Download Database button clicked.")
+    result = travel_agent.download_database(overwrite=True)
+    st.write(result)
+
+# Get list of tables in the database
+tables = []
+try:
+    conn = sqlite3.connect(travel_agent.local_file)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = [row[0] for row in cursor.fetchall()]
+    conn.close()
+except Exception as e:
+    st.error(f"Error fetching tables: {e}")
+
+# Display table selection dropdown if tables are available
+if tables:
+    selected_table = st.selectbox("Select Table to Display", tables)
+    if st.button("Display Table"):
+        st.write(f"Displaying contents of table: {selected_table}")
+        df = travel_agent.display_table(selected_table)
+        st.write(df)
+else:
+    st.error("No tables found in the database.")
+
+# Example: Set environment variables (optional)
 def _set_env(var: str):
     if not os.environ.get(var):
         os.environ[var] = st.sidebar.text_input(var, type="password")
@@ -90,46 +84,7 @@ _set_env("ANTHROPIC_API_KEY")
 _set_env("TAVILY_API_KEY")
 _set_env("LANGCHAIN_API_KEY")
 
-# Recommended
+# Recommended for LangChain
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 st.write("Environment variables set.")
-
-# Define the Streamlit app
-st.title("Travel Data Processing")
-
-# Define Streamlit buttons to trigger tool functions
-if st.button("Download Database"):
-    st.write("Download Database button clicked.")
-    result = travel_agent.download_database()
-    st.write(result)
-
-if st.button("Convert to Present Time"):
-    st.write("Convert to Present Time button clicked.")
-    result = travel_agent.convert_to_present_time()
-    st.write(result)
-
-# Display data from the database
-conn = None
-try:
-    st.write("Connecting to the database...")
-    conn = sqlite3.connect("travel2.sqlite")
-    cursor = conn.cursor()
-    st.write("Checking if 'flights' table exists...")
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='flights'")
-    table_exists = cursor.fetchone() is not None
-
-    if table_exists:
-        st.write("'flights' table exists. Fetching data...")
-        query = "SELECT * FROM flights LIMIT 5"
-        df = pd.read_sql_query(query, conn)
-        st.write("Sample Data from Flights Table:")
-        st.write(df)
-    else:
-        st.error("The 'flights' table does not exist in the database.")
-except Exception as e:
-    st.error(f"Error: {e}")
-finally:
-    if conn:
-        conn.close()
-        st.write("Database connection closed.")
