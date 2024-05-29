@@ -40,7 +40,7 @@ for t in tables:
     tdf[t] = pd.read_sql(f"SELECT * from {t}", conn)
 
 # Adjust the time fields in the flights and bookings tables
-example_time = pd.to_datetime(tdf["flights"]["actual_departure"].replace("\\N", pd.NaT)).max()
+example_time = pd.to_datetime(tdf["flight"]["actual_departure"].replace("\\N", pd.NaT)).max()
 current_time = pd.to_datetime("now").tz_localize(example_time.tz)
 time_diff = current_time - example_time
 
