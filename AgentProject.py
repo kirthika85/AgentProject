@@ -101,7 +101,7 @@ st.title("Travel Data Processing")
 # Define Streamlit buttons to trigger tool functions
 if st.button("Download Database"):
     st.write("Download Database button clicked.")
-    result = travel_agent.download_database(overwrite=True)
+    result = travel_agent.download_database()
     st.write(result)
 
 if st.button("Convert to Present Time"):
