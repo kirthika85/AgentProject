@@ -11,8 +11,53 @@ from langchain_core.runnables import ensure_config
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import tool
 
-# Define tools
+from langchain_anthropic import ChatAnthropic
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable, RunnableConfig
 
+
+class Assistant:
+    def __init__(self, runnable: Runnable):
+        self.runnable = runnable
+
+    def __call__(self, state, config: RunnableConfig):
+        while True:
+            passenger_id = config.get("passenger_id", None)
+            state = {**state, "user_info": passenger_id}
+            result = self.runnable.invoke(state)
+            if not result.tool_calls and (
+                not result.content
+                or isinstance(result.content, list)
+                and not result.content[0].get("text")
+            ):
+                messages = state["messages"] + [("user", "Respond with a real output.")]
+                state = {**state, "messages": messages}
+            else:
+                break
+        return {"messages": result}
+
+
+# Initialize the ChatAnthropic model
+llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=1)
+
+primary_assistant_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a helpful customer support assistant for Swiss Airlines. "
+            " Use the provided tools to search for flights, company policies, and other information to assist the user's queries. "
+            " When searching, be persistent. Expand your query bounds if the first search returns no results. "
+            " If a search comes up empty, expand your search before giving up."
+            "\n\nCurrent user:\n<User>\n{user_info}\n</User>"
+            "\nCurrent time: {time}.",
+        ),
+        ("placeholder", "{messages}"),
+    ]
+).partial(time=datetime.now())
+
+# Define tools
+@tool
 def download_database(db_url: str, local_file: str, backup_file: str, overwrite: bool = False) -> None:
     """Download the database from the given URL and create a backup."""
     if overwrite or not os.path.exists(local_file):
@@ -23,6 +68,7 @@ def download_database(db_url: str, local_file: str, backup_file: str, overwrite:
         shutil.copy(local_file, backup_file)
 
 
+@tool
 def convert_to_present_time(local_file: str) -> None:
     """Convert flight times to present time."""
     conn = sqlite3.connect(local_file)
@@ -49,6 +95,8 @@ def convert_to_present_time(local_file: str) -> None:
     conn.commit()
     conn.close()
 
+
+@tool
 def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
     """Fetch all tickets for the user along with corresponding flight information and seat assignments."""
     conn = sqlite3.connect(db)
@@ -74,8 +122,11 @@ def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
 
     cursor.close()
     conn.close()
+
     return results
 
+
+@tool
 def search_flights(
     db: str,
     departure_airport: Optional[str] = None,
@@ -115,8 +166,11 @@ def search_flights(
 
     cursor.close()
     conn.close()
+
     return results
 
+
+@tool
 def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> str:
     """Update the user's ticket to a new valid flight."""
     config = ensure_config()
@@ -157,7 +211,6 @@ def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> 
         conn.close()
         return "No existing ticket found for the given ticket number."
 
-    # Check the signed-in user actually has this ticket
     cursor.execute(
         "SELECT * FROM tickets WHERE ticket_no = ? AND passenger_id = ?",
         (ticket_no, passenger_id),
@@ -168,11 +221,6 @@ def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> 
         conn.close()
         return f"Current signed-in passenger with ID {passenger_id} not the owner of ticket {ticket_no}"
 
-    # In a real application, you'd likely add additional checks here to enforce business logic,
-    # like "does the new departure airport match the current ticket", etc.
-    # While it's best to try to be *proactive* in 'type-hinting' policies to the LLM
-    # it's inevitably going to get things wrong, so you **also** need to ensure your
-    # API enforces valid behavior
     cursor.execute(
         "UPDATE ticket_flights SET flight_id = ? WHERE ticket_no = ?",
         (new_flight_id, ticket_no),
@@ -182,6 +230,8 @@ def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> 
     conn.close()
     return "Ticket successfully updated to new flight."
 
+
+@tool
 def cancel_ticket(db: str, ticket_no: str) -> str:
     """Cancel the user's ticket and remove it from the database."""
     config = ensure_config()
@@ -201,7 +251,6 @@ def cancel_ticket(db: str, ticket_no: str) -> str:
         conn.close()
         return "No existing ticket found for the given ticket number."
 
-    # Check the signed-in user actually has this ticket
     cursor.execute(
         "SELECT flight_id FROM tickets WHERE ticket_no = ? AND passenger_id = ?",
         (ticket_no, passenger_id),
@@ -219,25 +268,27 @@ def cancel_ticket(db: str, ticket_no: str) -> str:
     conn.close()
     return "Ticket successfully cancelled."
 
-# Set up LangChain agent
-agent = create_openai_functions_agent(tools=[
-    download_database,
-    convert_to_present_time,
+
+# Set up the agent runnable
+part_1_tools = [
+    TavilySearchResults(max_results=1),
     fetch_user_flight_information,
     search_flights,
     update_ticket_to_new_flight,
     cancel_ticket,
-])
+]
+part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(part_1_tools)
+assistant = Assistant(part_1_assistant_runnable)
 
 # Initialize chat history in Streamlit session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 def call_agent(tool_name, **kwargs):
-    chat_input = {"tool": tool_name, "kwargs": kwargs}
-    st.session_state.chat_history.append(chat_input)
-    response = agent.run(chat_history=st.session_state.chat_history)
-    st.session_state.chat_history.append({"response": response})
+    config = RunnableConfig({"passenger_id": kwargs.get("passenger_id", None)})
+    state = {"messages": [{"role": "user", "content": tool_name}], **kwargs}
+    response = assistant(state, config)
+    st.session_state.chat_history.append(response)
     return response
 
 # Streamlit main function
