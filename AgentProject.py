@@ -5,11 +5,18 @@ import requests
 import shutil
 import streamlit as st
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-#from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
+# Set the page configuration at the top
+st.set_page_config(page_title="Travel Database App")
+st.title("Travel Database Chat")
 
+# Function to set environment variables
+def set_env(var: str, value: str):
+    if not os.environ.get(var):
+        os.environ[var] = value
+
+# Function to download and setup the database
 def setup_database():
     db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
     local_file = "travel2.sqlite"
@@ -40,17 +47,17 @@ def setup_database():
     conn.close()
     return local_file
 
-st.title("Travel Database Chat")
+# Sidebar input for API keys
 openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
 tavily_api_key = st.sidebar.text_input('Tavily API Key', type='password')
 
 if not openai_api_key.startswith('sk-'):
     st.warning('Please enter your OpenAI API key!', icon='⚠')
 elif openai_api_key.startswith('sk-') and tavily_api_key:
-    os.environ['TAVILY_API_KEY'] = tavily_api_key
-   
-    st.set_page_config(page_title="Travel Database App")
-    st.title("Travel Database Chat")
+    set_env('OPENAI_API_KEY', openai_api_key)
+    set_env('TAVILY_API_KEY', tavily_api_key)
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
     # Setup database
     db_path = setup_database()
@@ -77,4 +84,3 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     for chat in chat_history:
         st.write(f"**User:** {chat['user']}")
         st.write(f"**Assistant:** {chat['assistant']}")
-
