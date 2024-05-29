@@ -7,13 +7,13 @@ import pandas as pd
 import requests
 import pytz
 import streamlit as st
-from langchain_core.runnables import ensure_config
+from langchain_core.runnables import ensure_config,RunnableConfig
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import tool
 from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable
 
 # Sidebar inputs for environment variables
 anthropic_api_key = st.sidebar.text_input("ANTHROPIC_API_KEY", type="password")
@@ -296,6 +296,11 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 def call_agent(tool_name, **kwargs):
+    config = RunnableConfig({"passenger_id": kwargs.get("passenger_id", None)})
+    state = {"messages": [{"role": "user", "content": tool_name}], **kwargs}
+    response = assistant(state, config)
+    st.session_state.chat_history.append(response)
+    return response
     config = RunnableConfig({"passenger_id": kwargs.get("passenger_id", None)})
     state = {"messages": [{"role": "user", "content": tool_name}], **kwargs}
     response = assistant(state, config)
