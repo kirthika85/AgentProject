@@ -8,3 +8,4 @@ tavily-python
 pandas
 beautifulsoup4
 requests
+langchain.tools
