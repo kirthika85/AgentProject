@@ -44,6 +44,10 @@ class AssistantAgent:
         cursor = conn.cursor()
 
         tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
+        if "flights" not in tables:
+            st.error("The 'flights' table does not exist in the database.")
+            return
+
         tdf = {}
         for t in tables:
             tdf[t] = pd.read_sql(f"SELECT * from {t}", conn)
@@ -78,10 +82,17 @@ if st.button("Convert to Present Time"):
 conn = None
 try:
     conn = sqlite3.connect("travel2.sqlite")
-    query = "SELECT * FROM flights LIMIT 5"
-    df = pd.read_sql_query(query, conn)
-    st.write("Sample Data from Flights Table:")
-    st.write(df)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='flights'")
+    table_exists = cursor.fetchone() is not None
+
+    if table_exists:
+        query = "SELECT * FROM flights LIMIT 5"
+        df = pd.read_sql_query(query, conn)
+        st.write("Sample Data from Flights Table:")
+        st.write(df)
+    else:
+        st.error("The 'flights' table does not exist in the database.")
 except Exception as e:
     st.error(f"Error: {e}")
 finally:
