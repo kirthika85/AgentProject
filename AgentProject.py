@@ -66,7 +66,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     conn = sqlite3.connect(db_path)
     tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
     selected_table = st.sidebar.selectbox("Select a table", tables)
-    df = pd.read_sql("SELECT * FROM flights", conn)
+    df = pd.read_sql("SELECT * FROM {selected_table}", conn)
     conn.close()
     
     st.write(f"### {selected_table} Table")
