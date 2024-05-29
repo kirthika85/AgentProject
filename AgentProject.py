@@ -72,7 +72,7 @@ agent = AssistantAgent()
 
 # Download the database
 if st.button("Download Database"):
-    agent.download_database(db_url, "travel2.sqlite", "travel2.backup.sqlite")
+    agent.download_database(db_url="https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite", "travel2.sqlite", "travel2.backup.sqlite")
 
 # Convert flight times to present time
 if st.button("Convert to Present Time"):
