@@ -3,11 +3,11 @@ openai
 langchain-openai
 langchain
 langgraph 
-langchain-community 
+langchain-community
+langchain-experimental
 langchain-anthropic 
 tavily-python 
 pandas
 beautifulsoup4
 requests
 langchain.tools
-langchain-experimental
