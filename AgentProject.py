@@ -307,7 +307,9 @@ backup_file = "travel2.backup.sqlite"
 overwrite = st.checkbox("Overwrite Database", value=False)
 
 if st.button("Download and Prepare Database"):
+    st.write("Before calling call_agent")
     response = call_agent("download_database", db_url=db_url, local_file=local_file, backup_file=backup_file, overwrite=overwrite)
+    st.write("After calling call_agent")
     st.success("Database downloaded and prepared.")
     st.write(response)
 
