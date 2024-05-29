@@ -7,5 +7,4 @@ tavily-python
 pandas
 beautifulsoup4
 requests
-langgraph
-langsmith
+langchain
