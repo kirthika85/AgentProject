@@ -50,7 +50,7 @@ class Assistant:
         return {"messages": result}
 
 # Initialize the ChatAnthropic model
-llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=1)
+llm = ChatAnthropic(model="claude-3-sonnet-20240229",temperature=1)
 
 primary_assistant_prompt = ChatPromptTemplate.from_messages(
     [
@@ -310,6 +310,7 @@ overwrite = st.checkbox("Overwrite Database", value=False)
 
 if st.button("Download and Prepare Database"):
     st.write("Before calling call_agent")
+    st.write(db_url)
     response = call_agent("download_database",db_url=db_url,local_file=local_file,backup_file=backup_file,overwrite=overwrite)
     st.write("After calling call_agent")
     st.success("Database downloaded and prepared.")
