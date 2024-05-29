@@ -10,3 +10,4 @@ beautifulsoup4
 requests
 langchain.tools
 langchain-experimental
+langchain-openai
