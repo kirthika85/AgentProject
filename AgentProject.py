@@ -12,7 +12,7 @@ from langchain_core.agents import create_openai_functions_agent
 from langchain.tools import tool
 
 # Define tools
-@tool
+
 def download_database(db_url: str, local_file: str, backup_file: str, overwrite: bool = False) -> None:
     """Download the database from the given URL and create a backup."""
     if overwrite or not os.path.exists(local_file):
@@ -22,7 +22,7 @@ def download_database(db_url: str, local_file: str, backup_file: str, overwrite:
             f.write(response.content)
         shutil.copy(local_file, backup_file)
 
-@tool
+
 def convert_to_present_time(local_file: str) -> None:
     """Convert flight times to present time."""
     conn = sqlite3.connect(local_file)
@@ -49,7 +49,6 @@ def convert_to_present_time(local_file: str) -> None:
     conn.commit()
     conn.close()
 
-@tool
 def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
     """Fetch all tickets for the user along with corresponding flight information and seat assignments."""
     conn = sqlite3.connect(db)
@@ -75,10 +74,8 @@ def fetch_user_flight_information(db: str, passenger_id: str) -> list[dict]:
 
     cursor.close()
     conn.close()
-
     return results
 
-@tool
 def search_flights(
     db: str,
     departure_airport: Optional[str] = None,
@@ -118,10 +115,8 @@ def search_flights(
 
     cursor.close()
     conn.close()
-
     return results
 
-@tool
 def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> str:
     """Update the user's ticket to a new valid flight."""
     config = ensure_config()
@@ -183,12 +178,10 @@ def update_ticket_to_new_flight(db: str, ticket_no: str, new_flight_id: int) -> 
         (new_flight_id, ticket_no),
     )
     conn.commit()
-
     cursor.close()
     conn.close()
     return "Ticket successfully updated to new flight."
 
-@tool
 def cancel_ticket(db: str, ticket_no: str) -> str:
     """Cancel the user's ticket and remove it from the database."""
     config = ensure_config()
@@ -240,7 +233,6 @@ agent = create_openai_functions_agent(tools=[
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Function to call the agent and update chat history
 def call_agent(tool_name, **kwargs):
     chat_input = {"tool": tool_name, "kwargs": kwargs}
     st.session_state.chat_history.append(chat_input)
@@ -248,9 +240,7 @@ def call_agent(tool_name, **kwargs):
     st.session_state.chat_history.append({"response": response})
     return response
 
-
-
-# Streamlit app
+# Streamlit main function
 st.title("Flight Management System")
 
 db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
