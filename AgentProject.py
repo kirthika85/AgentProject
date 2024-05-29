@@ -7,7 +7,7 @@ import streamlit as st
 import logging
 from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
 from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain.tools import Tool, tool
+from langchain.tools import tool
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -21,6 +21,7 @@ class TravelAgent:
         self.backup_file = "travel2.backup.sqlite"
         logger.debug("TravelAgent initialized.")
 
+    @tool
     def download_database(self, overwrite: bool = False) -> str:
         """Download the database from the given URL and create a backup."""
         logger.debug(f"Attempting to download database. Overwrite: {overwrite}")
@@ -36,6 +37,7 @@ class TravelAgent:
             logger.debug("Database already exists. Skipping download.")
         return "Database downloaded and backup created."
 
+    @tool
     def display_table(self, table_name: str) -> pd.DataFrame:
         """Display the contents of the specified table."""
         logger.debug(f"Fetching data from table: {table_name}")
@@ -48,25 +50,11 @@ class TravelAgent:
 # Create an instance of the agent
 travel_agent = TravelAgent()
 
-# Define tools
-download_database_tool = Tool(
-    name="download_database",
-    func=travel_agent.download_database,
-    description="Download the database from the given URL and create a backup.",
-)
-
-display_table_tool = Tool(
-    name="display_table",
-    func=travel_agent.display_table,
-    description="Display the contents of the specified table.",
-    args_schema={"table_name": str},
-)
-
 # Define Streamlit UI
 st.title("Travel Data Processing")
 
 # Agent Executor setup
-tools = [download_database_tool, display_table_tool]
+tools = [travel_agent.download_database, travel_agent.display_table]
 agent = create_openai_functions_agent(tools)
 executor = AgentExecutor(agent=agent)
 
