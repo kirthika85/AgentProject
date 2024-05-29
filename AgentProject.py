@@ -281,7 +281,7 @@ def cancel_ticket(db: str, ticket_no: str) -> str:
 
 # Set up the agent runnable
 part_1_tools = [
-    TavilySearchResults(max_results=1),
+    TavilySearchResults(api_key=tavily_api_key,max_results=1),
     fetch_user_flight_information,
     search_flights,
     update_ticket_to_new_flight,
