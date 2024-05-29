@@ -9,5 +9,4 @@ pandas
 beautifulsoup4
 requests
 langchain.tools
-langchain.agents
 langchain-experimental
