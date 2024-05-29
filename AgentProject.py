@@ -30,16 +30,23 @@ class AssistantAgent:
     @tool
     def download_database(self, db_url: str, local_file: str, backup_file: str, overwrite: bool = False) -> None:
         """Download the database from the given URL and create a backup."""
+        print("Downloading database...")
+        print(f"DB URL: {db_url}")
+        print(f"Local file: {local_file}")
+        print(f"Backup file: {backup_file}")
+        print(f"Overwrite: {overwrite}")
         if overwrite or not os.path.exists(local_file):
             response = requests.get(db_url)
             response.raise_for_status()
             with open(local_file, "wb") as f:
                 f.write(response.content)
             shutil.copy(local_file, backup_file)
+        print("Download completed.")
 
     @tool
     def convert_to_present_time(self, local_file: str) -> None:
         """Convert flight times to present time."""
+        print("Converting to present time...")
         conn = sqlite3.connect(local_file)
         cursor = conn.cursor()
 
@@ -67,6 +74,7 @@ class AssistantAgent:
 
         conn.commit()
         conn.close()
+        print("Conversion completed.")
 
 agent = AssistantAgent()
 
