@@ -73,7 +73,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     st.write(df)
     
     # Create LangChain tools and agents
-    llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
+    llm = OpenAI(model="gpt-3.5-turbo", temperature=0,endpoint="v1/chat/completions")
     agent = create_pandas_dataframe_agent(llm, df,verbose=True)
 
     # Chat interface
