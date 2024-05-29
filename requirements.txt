@@ -9,3 +9,4 @@ pandas
 beautifulsoup4
 requests
 langchain.tools
+lanchain.agents
