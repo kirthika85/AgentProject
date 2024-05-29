@@ -5,7 +5,7 @@ import requests
 import shutil
 import streamlit as st
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-#from langchain_openai import ChatOpenAI
+from langchain.llms import OpenAI
 
 # Set the page configuration at the top
 st.set_page_config(page_title="Travel Database App")
@@ -68,7 +68,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     conn.close()
 
     # Create LangChain tools and agents
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+    llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
     agent = create_pandas_dataframe_agent(llm, df, agent_type="tool-calling", verbose=True)
 
     # Chat interface
