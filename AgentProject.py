@@ -33,7 +33,7 @@ set_env("LANGCHAIN_API_KEY", langchain_api_key)
 
 # Recommended settings
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
+os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot"
 
 class Assistant:
     def __init__(self, runnable: Runnable):
@@ -286,8 +286,9 @@ part_1_tools = [
     fetch_user_flight_information,
     search_flights,
     update_ticket_to_new_flight,
-    cancel_ticket,
+    cancel_ticket
 ]
+
 part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(part_1_tools)
 assistant = Assistant(part_1_assistant_runnable)
 
@@ -316,7 +317,6 @@ if st.button("Download and Prepare Database"):
     st.write(response)
 
 passenger_id = st.text_input("Passenger ID")
-
 if st.button("Fetch User Flight Information"):
     results = call_agent("fetch_user_flight_information", db=local_file, passenger_id=passenger_id)
     st.write(results)
