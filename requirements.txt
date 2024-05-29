@@ -10,4 +10,4 @@ beautifulsoup4
 requests
 langchain.tools
 lanchain.agents
-langchain_experimental.agents
+langchain-experimental
