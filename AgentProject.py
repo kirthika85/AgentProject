@@ -15,20 +15,15 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
 
-# Function to set environment variables
-def set_env(variable_name, value):
-    if value:
-        os.environ[variable_name] = value
-
 # Sidebar inputs for environment variables
 anthropic_api_key = st.sidebar.text_input("ANTHROPIC_API_KEY", type="password")
 tavily_api_key = st.sidebar.text_input("TAVILY_API_KEY", type="password")
 langchain_api_key = st.sidebar.text_input("LANGCHAIN_API_KEY", type="password")
 
 # Set environment variables
-set_env("ANTHROPIC_API_KEY", anthropic_api_key)
-set_env("TAVILY_API_KEY", tavily_api_key)
-set_env("LANGCHAIN_API_KEY", langchain_api_key)
+os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
+os.environ["TAVILY_API_KEY"]=tavily_api_key
+os.environ["LANGCHAIN_API_KEY"]=langchain_api_key
 
 # Recommended settings
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
