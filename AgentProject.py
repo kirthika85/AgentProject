@@ -7,7 +7,7 @@ import streamlit as st
 import logging
 from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
 from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain.tools import tool
+from langchain.tools import Tool, tool
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -21,7 +21,6 @@ class TravelAgent:
         self.backup_file = "travel2.backup.sqlite"
         logger.debug("TravelAgent initialized.")
 
-    @tool
     def download_database(self, overwrite: bool = False) -> str:
         """Download the database from the given URL and create a backup."""
         logger.debug(f"Attempting to download database. Overwrite: {overwrite}")
@@ -37,7 +36,6 @@ class TravelAgent:
             logger.debug("Database already exists. Skipping download.")
         return "Database downloaded and backup created."
 
-    @tool
     def display_table(self, table_name: str) -> pd.DataFrame:
         """Display the contents of the specified table."""
         logger.debug(f"Fetching data from table: {table_name}")
@@ -50,14 +48,48 @@ class TravelAgent:
 # Create an instance of the agent
 travel_agent = TravelAgent()
 
-# Streamlit UI
+# Define tools
+download_database_tool = Tool(
+    name="download_database",
+    func=travel_agent.download_database,
+    description="Download the database from the given URL and create a backup.",
+)
+
+display_table_tool = Tool(
+    name="display_table",
+    func=travel_agent.display_table,
+    description="Display the contents of the specified table.",
+    args_schema={"table_name": str},
+)
+
+# Define Streamlit UI
 st.title("Travel Data Processing")
 
-# Define Streamlit buttons to trigger tool functions
+# Agent Executor setup
+tools = [download_database_tool, display_table_tool]
+agent = create_openai_functions_agent(tools)
+executor = AgentExecutor(agent=agent)
+
+# Example: Set environment variables (optional)
+def _set_env(var: str):
+    if not os.environ.get(var):
+        os.environ[var] = st.sidebar.text_input(var, type="password")
+        st.write(f"Environment variable {var} set.")
+
+_set_env("ANTHROPIC_API_KEY")
+_set_env("TAVILY_API_KEY")
+_set_env("LANGCHAIN_API_KEY")
+
+# Recommended for LangChain
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
+st.write("Environment variables set.")
+
+# Streamlit buttons to trigger tool functions
 if st.button("Download Database"):
     try:
         st.write("Download Database button clicked.")
-        result = travel_agent.download_database(overwrite=True)
+        result = executor.run("download_database", {"overwrite": True})
         st.write(result)
     except Exception as e:
         st.error(f"An error occurred while downloading the database: {e}")
@@ -81,25 +113,10 @@ if tables:
     if st.button("Display Table"):
         try:
             st.write(f"Displaying contents of table: {selected_table}")
-            df = travel_agent.display_table(selected_table)
-            st.write(df)
+            result = executor.run("display_table", {"table_name": selected_table})
+            st.write(result)
         except Exception as e:
             st.error(f"An error occurred while displaying the table: {e}")
             logger.exception("An error occurred while displaying the table")
 else:
     st.error("No tables found in the database.")
-
-# Example: Set environment variables (optional)
-def _set_env(var: str):
-    if not os.environ.get(var):
-        os.environ[var] = st.sidebar.text_input(var, type="password")
-        st.write(f"Environment variable {var} set.")
-
-_set_env("ANTHROPIC_API_KEY")
-_set_env("TAVILY_API_KEY")
-_set_env("LANGCHAIN_API_KEY")
-
-# Recommended for LangChain
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
-st.write("Environment variables set.")
