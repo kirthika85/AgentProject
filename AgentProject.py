@@ -8,7 +8,7 @@ import requests
 import pytz
 import streamlit as st
 from langchain_core.runnables import ensure_config
-from langchain_core.agents import create_openai_functions_agent
+from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.tools import tool
 
 # Define tools
