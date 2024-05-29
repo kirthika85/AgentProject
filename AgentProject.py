@@ -4,8 +4,14 @@ import sqlite3
 import pandas as pd
 import requests
 import streamlit as st
-from langchain.tools import tool
+import logging
+from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
 from langchain.agents import create_openai_functions_agent, AgentExecutor
+from langchain.tools import tool
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Define the TravelAgent class with tool functions
 class TravelAgent:
@@ -13,28 +19,28 @@ class TravelAgent:
         self.db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
         self.local_file = "travel2.sqlite"
         self.backup_file = "travel2.backup.sqlite"
-        st.write("TravelAgent initialized.")
+        logger.debug("TravelAgent initialized.")
 
     @tool
     def download_database(self, overwrite: bool = False) -> str:
         """Download the database from the given URL and create a backup."""
-        st.write(f"Attempting to download database. Overwrite: {overwrite}")
+        logger.debug(f"Attempting to download database. Overwrite: {overwrite}")
         if overwrite or not os.path.exists(self.local_file):
-            st.write("Downloading database...")
+            logger.debug("Downloading database...")
             response = requests.get(self.db_url)
             response.raise_for_status()
             with open(self.local_file, "wb") as f:
                 f.write(response.content)
             shutil.copy(self.local_file, self.backup_file)
-            st.write("Database downloaded and backup created.")
+            logger.debug("Database downloaded and backup created.")
         else:
-            st.write("Database already exists. Skipping download.")
+            logger.debug("Database already exists. Skipping download.")
         return "Database downloaded and backup created."
 
     @tool
     def display_table(self, table_name: str) -> pd.DataFrame:
         """Display the contents of the specified table."""
-        st.write(f"Fetching data from table: {table_name}")
+        logger.debug(f"Fetching data from table: {table_name}")
         conn = sqlite3.connect(self.local_file)
         query = f"SELECT * FROM {table_name} LIMIT 10"
         df = pd.read_sql_query(query, conn)
@@ -49,9 +55,13 @@ st.title("Travel Data Processing")
 
 # Define Streamlit buttons to trigger tool functions
 if st.button("Download Database"):
-    st.write("Download Database button clicked.")
-    result = travel_agent.download_database(overwrite=True)
-    st.write(result)
+    try:
+        st.write("Download Database button clicked.")
+        result = travel_agent.download_database(overwrite=True)
+        st.write(result)
+    except Exception as e:
+        st.error(f"An error occurred while downloading the database: {e}")
+        logger.exception("An error occurred while downloading the database")
 
 # Get list of tables in the database
 tables = []
@@ -63,14 +73,19 @@ try:
     conn.close()
 except Exception as e:
     st.error(f"Error fetching tables: {e}")
+    logger.exception("Error fetching tables")
 
 # Display table selection dropdown if tables are available
 if tables:
     selected_table = st.selectbox("Select Table to Display", tables)
     if st.button("Display Table"):
-        st.write(f"Displaying contents of table: {selected_table}")
-        df = travel_agent.display_table(selected_table)
-        st.write(df)
+        try:
+            st.write(f"Displaying contents of table: {selected_table}")
+            df = travel_agent.display_table(selected_table)
+            st.write(df)
+        except Exception as e:
+            st.error(f"An error occurred while displaying the table: {e}")
+            logger.exception("An error occurred while displaying the table")
 else:
     st.error("No tables found in the database.")
 
