@@ -1,27 +1,49 @@
-import streamlit as st
 import os
 import shutil
 import sqlite3
 import pandas as pd
 import requests
+import streamlit as st
 
-# Function to download and prepare the database
-def download_and_prepare_database(db_url, local_file, backup_file, overwrite=False):
-    if overwrite or not os.path.exists(local_file):
-        response = requests.get(db_url)
-        response.raise_for_status()  # Ensure the request was successful
-        with open(local_file, "wb") as f:
-            f.write(response.content)
-        # Backup - we will use this to "reset" our DB in each section
-        shutil.copy(local_file, backup_file)
+from langchain_core.runnables import Runnable, RunnableConfig, ensure_config
+from langchain.tools import tool
+from langchain_anthropic import ChatAnthropic
 
-# Function to convert the flight times to present time
-def convert_to_present_time(local_file):
-    conn = sqlite3.connect(local_file)
-    cursor = conn.cursor()
+# Sidebar inputs for environment variables
+anthropic_api_key = st.sidebar.text_input("ANTHROPIC_API_KEY", type="password")
+tavily_api_key = st.sidebar.text_input("TAVILY_API_KEY", type="password")
+langchain_api_key = st.sidebar.text_input("LANGCHAIN_API_KEY", type="password")
 
-    tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
-    if "flights" in tables:
+# Set environment variables
+os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
+os.environ["TAVILY_API_KEY"] = tavily_api_key
+os.environ["LANGCHAIN_API_KEY"] = langchain_api_key
+
+# Recommended settings
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
+
+class AssistantAgent:
+    def __init__(self):
+        self.llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=1)
+
+    @tool
+    def download_database(self, db_url: str, local_file: str, backup_file: str, overwrite: bool = False) -> None:
+        """Download the database from the given URL and create a backup."""
+        if overwrite or not os.path.exists(local_file):
+            response = requests.get(db_url)
+            response.raise_for_status()
+            with open(local_file, "wb") as f:
+                f.write(response.content)
+            shutil.copy(local_file, backup_file)
+
+    @tool
+    def convert_to_present_time(self, local_file: str) -> None:
+        """Convert flight times to present time."""
+        conn = sqlite3.connect(local_file)
+        cursor = conn.cursor()
+
+        tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
         tdf = {}
         for t in tables:
             tdf[t] = pd.read_sql(f"SELECT * from {t}", conn)
@@ -41,36 +63,21 @@ def convert_to_present_time(local_file):
 
         conn.commit()
         conn.close()
-        st.success("Database downloaded and prepared.")
-    else:
-        st.error("The 'flights' table does not exist in the database.")
 
-# Download and prepare the database
-db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
-local_file = "travel2.sqlite"
-backup_file = "travel2.backup.sqlite"
-overwrite = False
-download_and_prepare_database(db_url, local_file, backup_file, overwrite)
+agent = AssistantAgent()
 
-# Convert the flight times to present time
-convert_to_present_time(local_file)
+# Download the database
+if st.button("Download Database"):
+    agent.download_database(db_url, "travel2.sqlite", "travel2.backup.sqlite")
 
-# Connect to the database
-conn = sqlite3.connect(local_file)
+# Convert flight times to present time
+if st.button("Convert to Present Time"):
+    agent.convert_to_present_time("travel2.sqlite")
 
-# Check if the 'flights' table exists
-cursor = conn.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='flights'")
-table_exists = cursor.fetchone() is not None
-
-if table_exists:
-    # Query the 'flights' table and display sample data
-    query = "SELECT * FROM flights LIMIT 5"
-    df = pd.read_sql_query(query, conn)
-    st.write("Sample Data from Flights Table:")
-    st.write(df)
-else:
-    st.error("The 'flights' table does not exist in the database.")
-
-# Close the database connection
+# Display data from the database
+conn = sqlite3.connect("travel2.sqlite")
+query = "SELECT * FROM flights LIMIT 5"
+df = pd.read_sql_query(query, conn)
+st.write("Sample Data from Flights Table:")
+st.write(df)
 conn.close()
