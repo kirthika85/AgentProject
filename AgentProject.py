@@ -34,6 +34,8 @@ class Assistant:
         self.runnable = runnable
 
     def __call__(self, state, config: RunnableConfig):
+        print("State type:", type(state))
+        print("Config type:", type(config))
         while True:
             passenger_id = config.get("passenger_id", None)
             state = {**state, "user_info": passenger_id}
