@@ -283,6 +283,8 @@ part_1_tools = [
     search_flights,
     update_ticket_to_new_flight,
     cancel_ticket,
+    download_database,
+    convert_to_present_time
 ]
 part_1_assistant_runnable = primary_assistant_prompt | llm.bind_tools(part_1_tools)
 assistant = Assistant(part_1_assistant_runnable)
@@ -308,7 +310,7 @@ overwrite = st.checkbox("Overwrite Database", value=False)
 
 if st.button("Download and Prepare Database"):
     st.write("Before calling call_agent")
-    response = call_agent("download_database", db_url=db_url, local_file=local_file, backup_file=backup_file, overwrite=overwrite)
+    response = call_agent("download_database",db_url=db_url,local_file=local_file,backup_file=backup_file,overwrite=overwrite)
     st.write("After calling call_agent")
     st.success("Database downloaded and prepared.")
     st.write(response)
