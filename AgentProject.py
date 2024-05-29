@@ -5,7 +5,7 @@ import requests
 import shutil
 import streamlit as st
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from langchain_openai import ChatOpenAI
+#from langchain_openai import ChatOpenAI
 
 def set_env(var: str, default: str):
     if not os.environ.get(var):
