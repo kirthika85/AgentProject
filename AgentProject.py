@@ -59,7 +59,7 @@ setup_database_tool = Tool(
     description="Download and set up the travel database."
 )
 
-tools = {'setup_database': setup_database_tool}
+tools = [setup_database_tool]
 
 model = ChatOpenAI(
         model='gpt-3.5-turbo-1106',
@@ -87,26 +87,29 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     agent = create_openai_functions_agent(llm=model,
         prompt=prompt,
         tools=tools)       
-    agent_executor = AgentExecutor(agent=agent, tools={'setup_database': setup_database_tool})
+    agent_executor = AgentExecutor(agent=agent, tools=tools)
 
     # Chat interface
-    chat_history = []
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    
     user_input = st.text_input("Enter your query:", key="input")
-    if user_input:
-        chat_history.append({"user": user_input, "assistant": ""})
-        try:
-            # Pass the user's query to the agent executor and get the response
-            if 'setup database' in user_input.lower():
-                agent_response = setup_database()
-            else:
-                agent_response = agent_executor.run(user_input)
+    if st.button("Query"):
+        if user_input:
+            st.session_state.chat_history.append({"user": user_input, "assistant": ""})
+            try:
+                # Pass the user's query to the agent executor and get the response
+                if 'setup database' in user_input.lower():
+                    agent_response = setup_database()
+                else:
+                    agent_response = agent_executor.invoke(user_input)
 
-            # Add the agent's response to the chat history
-            chat_history[-1]["assistant"] = agent_response
-            st.write(f"User: {user_input}")
-            st.write(f"Assistant: {agent_response}")
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+                # Add the agent's response to the chat history
+                st.session_state.chat_history[-1]["assistant"] = agent_response
+                st.write(f"User: {user_input}")
+                st.write(f"Assistant: {agent_response}")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
 
     for chat in chat_history:
         st.write(f"*User:* {chat['user']}")
