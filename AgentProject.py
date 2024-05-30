@@ -67,7 +67,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
 
     # Create LangChain tools and agents
     llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
-    agent = create_openai_functions_agent(model=llm)       
+    agent = create_openai_functions_agent(llm)       
     agent_executor = AgentExecutor(agent=agent, tools={'setup_database': setup_database_tool})
 
     # Chat interface
