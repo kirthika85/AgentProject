@@ -83,45 +83,48 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
     # Create LangChain tools and agents
-    #llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
-    agent = create_openai_functions_agent(llm=model,
-        prompt=prompt,
-        tools=tools)       
-    agent_executor = AgentExecutor(agent=agent, tools=tools)
+    try
+        #llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
+        agent = create_openai_functions_agent(llm=model,
+            prompt=prompt,
+            tools=tools)       
+        agent_executor = AgentExecutor(agent=agent, tools=tools)
 
-    # Chat interface
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+        # Chat interface
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = []
     
-    user_input = st.text_input("Enter your query:", key="input")
-    if st.button("Query"):
-        if user_input:
-            st.session_state.chat_history.append({"user": user_input, "assistant": ""})
-            try:
-                # Pass the user's query to the agent executor and get the response
-                if 'setup database' in user_input.lower():
-                    agent_response = setup_database()
-                else:
-                    agent_response = agent_executor.invoke(user_input)
+        user_input = st.text_input("Enter your query:", key="input")
+        if st.button("Query"):
+            if user_input:
+                st.session_state.chat_history.append({"user": user_input, "assistant": ""})
+                try:
+                    # Pass the user's query to the agent executor and get the response
+                    if 'setup database' in user_input.lower():
+                        agent_response = setup_database()
+                    else:
+                        agent_response = agent_executor.invoke(user_input)
 
-                # Add the agent's response to the chat history
-                st.session_state.chat_history[-1]["assistant"] = agent_response
-                st.write(f"User: {user_input}")
-                st.write(f"Assistant: {agent_response}")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+                    # Add the agent's response to the chat history
+                    st.session_state.chat_history[-1]["assistant"] = agent_response
+                    st.write(f"User: {user_input}")
+                    st.write(f"Assistant: {agent_response}")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
 
-    for chat in st.session_state.chat_history:
-        st.write(f"*User:* {chat['user']}")
-        st.write(f"*Assistant:* {chat['assistant']}")
+        for chat in st.session_state.chat_history:
+            st.write(f"*User:* {chat['user']}")
+            st.write(f"*Assistant:* {chat['assistant']}")
 
-    # After setting up the database, load data from the database into a DataFrame
-    db_path = setup_database()
-    conn = sqlite3.connect(db_path)
-    tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
-    selected_table = st.selectbox("Select a table", tables)
-    df = pd.read_sql(f"SELECT * FROM {selected_table}", conn)
-    conn.close()
+        # After setting up the database, load data from the database into a DataFrame
+        db_path = setup_database()
+        conn = sqlite3.connect(db_path)
+        tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
+        selected_table = st.selectbox("Select a table", tables)
+        df = pd.read_sql(f"SELECT * FROM {selected_table}", conn)
+        conn.close()
 
-    st.write(f"### {selected_table} Table")
-    st.write(df)
+        st.write(f"### {selected_table} Table")
+        st.write(df)
+    except Exception as e:
+        st.error(f"An error occurred during the setup of the agent or the execution of the query: {e}")
