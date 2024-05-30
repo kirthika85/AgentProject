@@ -111,7 +111,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
-    for chat in chat_history:
+    for chat in st.session_state.chat_history:
         st.write(f"*User:* {chat['user']}")
         st.write(f"*Assistant:* {chat['assistant']}")
 
