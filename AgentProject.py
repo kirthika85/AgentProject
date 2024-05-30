@@ -83,7 +83,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
     # Create LangChain tools and agents
-    try
+    try:
         #llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
         agent = create_openai_functions_agent(llm=model,
             prompt=prompt,
