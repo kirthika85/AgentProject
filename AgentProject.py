@@ -49,7 +49,7 @@ def setup_database(overwrite=False):
     return local_file
 
 # Define the setup_database tool
-setup_database_tool = Tools(
+setup_database_tool = Tool(
     name="setup_database",
     func=setup_database,
     description="Download and set up the travel database."
