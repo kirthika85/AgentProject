@@ -4,7 +4,7 @@ import sqlite3
 import requests
 import shutil
 import streamlit as st
-from langchain_experimental.agents import create_pandas_dataframe_agent
+from langchain.agents import create_openai_functions_agent, AgentExecutor, Tool
 from langchain.llms import OpenAI  # Make sure this import matches the actual LangChain module structure
 
 # Set the page configuration at the top
@@ -17,11 +17,10 @@ def set_env(var: str, value: str):
         os.environ[var] = value
 
 # Function to download and setup the database
-def setup_database():
+def setup_database(overwrite=False):
     db_url = "https://storage.googleapis.com/benchmarks-artifacts/travel-db/travel2.sqlite"
     local_file = "travel2.sqlite"
     backup_file = "travel2.backup.sqlite"
-    overwrite = False
     if overwrite or not os.path.exists(local_file):
         response = requests.get(db_url)
         response.raise_for_status()
@@ -47,6 +46,13 @@ def setup_database():
     conn.close()
     return local_file
 
+# Define the setup_database tool
+setup_database_tool = Tool(
+    name="setup_database",
+    func=setup_database,
+    description="Download and set up the travel database."
+)
+
 # Sidebar input for API keys
 openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
 tavily_api_key = st.sidebar.text_input('Tavily API Key', type='password')
@@ -59,22 +65,10 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
-    # Setup database
-    db_path = setup_database()
-
-    # Load data from the database into a DataFrame
-    conn = sqlite3.connect(db_path)
-    tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
-    selected_table = st.selectbox("Select a table", tables)
-    df = pd.read_sql(f"SELECT * FROM {selected_table}", conn)
-    conn.close()
-    
-    st.write(f"### {selected_table} Table")
-    st.write(df)
-    
     # Create LangChain tools and agents
     llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
-    agent = create_pandas_dataframe_agent(llm, df,verbose=True)
+    agent = create_openai_functions_agent(llm)
+    agent_executor = AgentExecutor(agent=agent, tools={'setup_database': setup_database_tool})
 
     # Chat interface
     chat_history = []
@@ -82,8 +76,11 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     if user_input:
         chat_history.append({"user": user_input, "assistant": ""})
         try:
-            # Pass the user's query to the agent and get the response
-            agent_response = agent.run(user_input)
+            # Pass the user's query to the agent executor and get the response
+            if 'setup database' in user_input.lower():
+                agent_response = setup_database()
+            else:
+                agent_response = agent_executor.run(user_input)
 
             # Add the agent's response to the chat history
             chat_history[-1]["assistant"] = agent_response
@@ -93,5 +90,16 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
             st.error(f"An error occurred: {e}")
 
     for chat in chat_history:
-        st.write(f"**User:** {chat['user']}")
-        st.write(f"**Assistant:** {chat['assistant']}")
+        st.write(f"*User:* {chat['user']}")
+        st.write(f"*Assistant:* {chat['assistant']}")
+
+    # After setting up the database, load data from the database into a DataFrame
+    db_path = setup_database()
+    conn = sqlite3.connect(db_path)
+    tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
+    selected_table = st.selectbox("Select a table", tables)
+    df = pd.read_sql(f"SELECT * FROM {selected_table}", conn)
+    conn.close()
+
+    st.write(f"### {selected_table} Table")
+    st.write(df)
