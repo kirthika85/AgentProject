@@ -59,6 +59,8 @@ setup_database_tool = Tool(
     description="Download and set up the travel database."
 )
 
+tools = {'setup_database': setup_database_tool}
+
 model = ChatOpenAI(
         model='gpt-3.5-turbo-1106',
         temperature=0.7,
