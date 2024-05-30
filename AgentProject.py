@@ -5,7 +5,6 @@ import requests
 import shutil
 import streamlit as st
 from langchain.agents import create_openai_functions_agent, AgentExecutor, Tool
-from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
@@ -62,16 +61,16 @@ setup_database_tool = Tool(
 tools = [setup_database_tool]
 
 model = ChatOpenAI(
-        model='gpt-3.5-turbo-1106',
-        temperature=0.7,
-        api_key=openai_api_key
+    model='gpt-3.5-turbo-1106',
+    temperature=0.7,
+    api_key=openai_api_key
 )
 
 prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a friendly assistant called Max."),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad")
+    ("system", "You are a friendly assistant called Max."),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
 
 if not openai_api_key.startswith('sk-'):
@@ -84,16 +83,13 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
 
     # Create LangChain tools and agents
     try:
-        #llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
-        agent = create_openai_functions_agent(llm=model,
-            prompt=prompt,
-            tools=tools)       
+        agent = create_openai_functions_agent(llm=model, prompt=prompt, tools=tools)
         agent_executor = AgentExecutor(agent=agent, tools=tools)
 
-        # Chat interface
+        # Initialize chat history in session state if not already
         if "chat_history" not in st.session_state:
             st.session_state.chat_history = []
-    
+
         user_input = st.text_input("Enter your query:", key="input")
         if st.button("Query"):
             if user_input:
@@ -104,6 +100,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
                         agent_response = setup_database()
                     else:
                         agent_response = agent_executor.invoke(user_input)
+                        st.write(f"Debug: agent_response: {agent_response}")
 
                     # Add the agent's response to the chat history
                     st.session_state.chat_history[-1]["assistant"] = agent_response
@@ -111,6 +108,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
                     st.write(f"Assistant: {agent_response}")
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
+                    st.write(f"Debug: {str(e)}")
 
         for chat in st.session_state.chat_history:
             st.write(f"*User:* {chat['user']}")
