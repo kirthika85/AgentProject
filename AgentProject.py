@@ -116,7 +116,8 @@ class VectorStoreRetriever:
     def from_docs(cls, docs, oai_client):
         embeddings = oai_client.embeddings.create(model="text-embedding-ada-002", input=[doc["page_content"] for doc in docs])
         print("Embeddings:", embeddings)
-        vectors = [emb["embedding"] for emb in embeddings["data"]]
+        #vectors = [emb["embedding"] for emb in embeddings["data"]]
+        vectors = [emb.embedding for emb in embeddings.data]
         print("Vectors:", vectors)
         return cls(docs, vectors, oai_client)
 
