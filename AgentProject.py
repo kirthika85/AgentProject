@@ -6,7 +6,7 @@ import shutil
 import streamlit as st
 from langchain.agents import create_openai_functions_agent, AgentExecutor, Tool
 from langchain.llms import OpenAI
-from langchain.llms.openai import ChatOpenAI
+from langchain-openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 # Set the page configuration at the top
