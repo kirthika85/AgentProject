@@ -48,6 +48,10 @@ def setup_database(overwrite=False):
     conn.close()
     return local_file
 
+# Sidebar input for API keys
+openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
+tavily_api_key = st.sidebar.text_input('Tavily API Key', type='password')
+
 # Define the setup_database tool
 setup_database_tool = Tool(
     name="setup_database",
@@ -67,10 +71,6 @@ prompt = ChatPromptTemplate.from_messages([
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad")
 ])
-
-# Sidebar input for API keys
-openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
-tavily_api_key = st.sidebar.text_input('Tavily API Key', type='password')
 
 if not openai_api_key.startswith('sk-'):
     st.warning('Please enter your OpenAI API key!', icon='⚠')
