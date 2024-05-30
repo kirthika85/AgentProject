@@ -5,7 +5,9 @@ import requests
 import shutil
 import streamlit as st
 from langchain.agents import create_openai_functions_agent, AgentExecutor, Tool
-from langchain.llms import OpenAI  # Make sure this import matches the actual LangChain module structure
+from langchain.llms import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 # Set the page configuration at the top
 st.set_page_config(page_title="Travel Database App")
@@ -47,11 +49,24 @@ def setup_database(overwrite=False):
     return local_file
 
 # Define the setup_database tool
-setup_database_tool = Tool(
+setup_database_tool = Tools(
     name="setup_database",
     func=setup_database,
     description="Download and set up the travel database."
 )
+
+model = ChatOpenAI(
+        model='gpt-3.5-turbo-1106',
+        temperature=0.7,
+        api_key=openai_api_key
+)
+
+prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a friendly assistant called Max."),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad")
+])
 
 # Sidebar input for API keys
 openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
@@ -66,8 +81,10 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
     os.environ["LANGCHAIN_PROJECT"] = "Customer Support Bot Tutorial"
 
     # Create LangChain tools and agents
-    llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
-    agent = create_openai_functions_agent(llm)       
+    #llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
+    agent = create_openai_functions_agent(llm=model,
+        prompt=prompt,
+        tools=tools)       
     agent_executor = AgentExecutor(agent=agent, tools={'setup_database': setup_database_tool})
 
     # Chat interface
