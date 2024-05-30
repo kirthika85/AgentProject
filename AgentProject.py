@@ -7,6 +7,7 @@ import streamlit as st
 from langchain.agents import create_openai_functions_agent, AgentExecutor, Tool
 from langchain.chat_models import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+import time
 
 # Set the page configuration at the top
 st.set_page_config(page_title="Travel Database App")
@@ -46,6 +47,21 @@ def setup_database(overwrite=False):
     conn.commit()
     conn.close()
     return local_file
+
+# Function to safely query the database with retry logic
+def safe_query_db(query, params=(), retries=5):
+    db_path = "travel2.sqlite"
+    for attempt in range(retries):
+        try:
+            conn = sqlite3.connect(db_path)
+            df = pd.read_sql(query, conn, params=params)
+            conn.close()
+            return df
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < retries - 1:
+                time.sleep(1)  # Wait a bit before retrying
+            else:
+                raise e
 
 # Sidebar input for API keys
 openai_api_key = st.sidebar.text_input('OpenAI API Key', type='password')
@@ -116,12 +132,10 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
 
         # After setting up the database, load data from the database into a DataFrame
         db_path = setup_database()
-        conn = sqlite3.connect(db_path)
-        tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
+        query = "SELECT name FROM sqlite_master WHERE type='table';"
+        tables = safe_query_db(query).name.tolist()
         selected_table = st.selectbox("Select a table", tables)
-        df = pd.read_sql(f"SELECT * FROM {selected_table}", conn)
-        conn.close()
-
+        df = safe_query_db(f"SELECT * FROM {selected_table}")
         st.write(f"### {selected_table} Table")
         st.write(df)
     except Exception as e:
