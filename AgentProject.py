@@ -126,7 +126,7 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
                     st.error(f"An error occurred: {e}")
                     st.write(f"Debug: {str(e)}")
 
-        for chat in st.session_state.chat_history:
+        for i, chat in enumerate(st.session_state.chat_history):
             st.write(f"*User:* {chat['user']}")
             st.write(f"*Assistant:* {chat['assistant']}")
 
@@ -134,9 +134,14 @@ elif openai_api_key.startswith('sk-') and tavily_api_key:
         db_path = setup_database()
         query = "SELECT name FROM sqlite_master WHERE type='table';"
         tables = safe_query_db(query).name.tolist()
-        selected_table = st.selectbox("Select a table", tables)
-        df = safe_query_db(f"SELECT * FROM {selected_table}")
-        st.write(f"### {selected_table} Table")
-        st.write(df)
+        st.write(f"Debug: tables: {tables}")
+        if tables:
+            selected_table = st.selectbox("Select a table", tables)
+            df = safe_query_db(f"SELECT * FROM {selected_table}")
+            st.write(f"### {selected_table} Table")
+            st.write(df)
+        else:
+            st.write("No tables found in the database.")
     except Exception as e:
         st.error(f"An error occurred during the setup of the agent or the execution of the query: {e}")
+        st.write(f"Debug: {str(e)}")
