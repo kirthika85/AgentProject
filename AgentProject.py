@@ -57,25 +57,46 @@ if not os.path.exists(local_file):
         f.write(response.content)
     shutil.copy(local_file, backup_file)
 
+# Check if the local database file exists
+if os.path.exists(local_file):
+    st.write(f"Database file {local_file} found.")
+else:
+    st.write(f"Database file {local_file} not found. Downloading...")
+    response = requests.get(db_url)
+    response.raise_for_status()
+    with open(local_file, "wb") as f:
+        f.write(response.content)
+    st.write("Download complete.")
+
+try:
+    conn = sqlite3.connect(local_file)
+    cursor = conn.cursor()
+    tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
+    st.write("Tables in the database:", tables)
+except Exception as e:
+    st.error(f"An error occurred while connecting to the database: {e}")
+    st.stop()
+
 # Convert the flights to present time
-conn = sqlite3.connect(local_file)
-cursor = conn.cursor()
-tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn).name.tolist()
-tdf = {t: pd.read_sql(f"SELECT * from {t}", conn) for t in tables}
+try:
+    tdf = {t: pd.read_sql(f"SELECT * from {t}", conn) for t in tables}
+    example_time = pd.to_datetime(tdf["flights"]["actual_departure"].replace("\\N", pd.NaT)).max()
+    current_time = pd.to_datetime("now").tz_localize(example_time.tz)
+    time_diff = current_time - example_time
 
-example_time = pd.to_datetime(tdf["flights"]["actual_departure"].replace("\\N", pd.NaT)).max()
-current_time = pd.to_datetime("now").tz_localize(example_time.tz)
-time_diff = current_time - example_time
+    tdf["bookings"]["book_date"] = pd.to_datetime(tdf["bookings"]["book_date"].replace("\\N", pd.NaT), utc=True) + time_diff
+    datetime_columns = ["scheduled_departure", "scheduled_arrival", "actual_departure", "actual_arrival"]
+    for column in datetime_columns:
+        tdf["flights"][column] = pd.to_datetime(tdf["flights"][column].replace("\\N", pd.NaT)) + time_diff
 
-tdf["bookings"]["book_date"] = pd.to_datetime(tdf["bookings"]["book_date"].replace("\\N", pd.NaT), utc=True) + time_diff
-datetime_columns = ["scheduled_departure", "scheduled_arrival", "actual_departure", "actual_arrival"]
-for column in datetime_columns:
-    tdf["flights"][column] = pd.to_datetime(tdf["flights"][column].replace("\\N", pd.NaT)) + time_diff
-
-for table_name, df in tdf.items():
-    df.to_sql(table_name, conn, if_exists="replace", index=False)
-conn.commit()
-conn.close()
+    for table_name, df in tdf.items():
+        df.to_sql(table_name, conn, if_exists="replace", index=False)
+    conn.commit()
+except Exception as e:
+    st.error(f"An error occurred while processing the database: {e}")
+    st.stop()
+finally:
+    conn.close()
 
 db = local_file  # We'll be using this local file as our DB in this tutorial
 
@@ -188,20 +209,14 @@ def update_ticket_to_new_flight(ticket_no: str, new_flight_id: int) -> str:
         conn.close()
         return "Invalid new flight ID provided."
     column_names = [column[0] for column in cursor.description]
-    new_flight_dict = dict(zip(column_names, new_flight))
-    timezone = pytz.timezone("Etc/GMT-3")
-    current_time = datetime.now(tz=timezone)
-    departure_time = datetime.strptime(new_flight_dict["scheduled_departure"], "%Y-%m-%d %H:%M:%S.%f%z")
-    time_until = (departure_time - current_time).total_seconds()
-    if time_until < (3 * 3600):
-        return f"Not permitted to reschedule to a flight that is less than 3 hours from the current time. Selected flight is at {departure_time}."
+    new_flight = dict(zip(column_names, new_flight))
     cursor.execute("SELECT flight_id FROM ticket_flights WHERE ticket_no = ?", (ticket_no,))
-    current_flight = cursor.fetchone()
-    if not current_flight:
+    existing_ticket = cursor.fetchone()
+    if not existing_ticket:
         cursor.close()
         conn.close()
         return "No existing ticket found for the given ticket number."
-    cursor.execute("SELECT * FROM tickets WHERE ticket_no = ? AND passenger_id = ?", (ticket_no, passenger_id))
+    cursor.execute("SELECT flight_id FROM tickets WHERE ticket_no = ? AND passenger_id = ?", (ticket_no, passenger_id))
     current_ticket = cursor.fetchone()
     if not current_ticket:
         cursor.close()
